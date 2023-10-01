@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"flag"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -58,6 +59,14 @@ func handleError(err error) {
 }
 
 func main() {
+	helpFlag := flag.Bool("h", false, "Show usage information")
+    flag.Parse()
+
+    if *helpFlag {
+        showUsage()
+        os.Exit(0)
+    }
+	
 	args := os.Args[1:]
 
 	if len(args) < 3 {
