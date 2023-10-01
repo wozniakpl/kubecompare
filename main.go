@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -21,20 +21,27 @@ func getKubectlOutput(resourceType, resourceName, outputFormat string) (string, 
 }
 
 func main() {
-	var outputFormat string
-	flag.StringVar(&outputFormat, "o", "yaml", "Output format. Allowed values: json, yaml")
-	flag.Parse()
-
-	args := flag.Args()
-	if len(args) != 2 {
-		fmt.Println("Usage: kubecompare <resource-type> <resource-name>")
-		return
+	outputFormat := "yaml" // default output format
+	args := os.Args[1:]
+	for i, arg := range args {
+		if arg == "-o" {
+			if i+1 < len(args) {
+				outputFormat = args[i+1]
+				args = append(args[:i], args[i+2:]...) // remove -o and its argument
+				break
+			}
+		}
 	}
 
-	resourceType, resourceName := args[0], args[1]
-	if strings.Contains(resourceName, "/") {
-		parts := strings.SplitN(resourceName, "/", 2)
+	var resourceType, resourceName string
+	if len(args) == 1 && strings.Contains(args[0], "/") {
+		parts := strings.SplitN(args[0], "/", 2)
 		resourceType, resourceName = parts[0], parts[1]
+	} else if len(args) == 2 {
+		resourceType, resourceName = args[0], args[1]
+	} else {
+		fmt.Println("Usage: kubecompare [-o output_format] <resource-type> <resource-name> or <resource-type>/<resource-name>")
+		return
 	}
 
 	data, err := getKubectlOutput(resourceType, resourceName, outputFormat)
