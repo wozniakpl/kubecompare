@@ -13,7 +13,7 @@ A CLI tool to compare different revisions of Kubernetes resources.
 Clone the repository and build the application using Go:
 
 ```bash
-git clone https://github.com/your-username/kubecompare.git
+git clone https://github.com/wozniakpl/kubecompare.git
 cd kubecompare
 go build -o kubecompare
 ```
@@ -23,7 +23,7 @@ go build -o kubecompare
 If you have Homebrew installed, you can install kubecompare from our custom tap:
 
 ```
-brew tap your-username/my-tap
+brew tap wozniakpl/kubecompare
 brew install kubecompare
 ```
 
