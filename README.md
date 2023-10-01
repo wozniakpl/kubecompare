@@ -23,7 +23,7 @@ go build -o kubecompare
 If you have Homebrew installed, you can install kubecompare from our custom tap:
 
 ```
-brew tap wozniakpl/homebrew-kubecompare
+brew tap wozniakpl/kubecompare
 brew install kubecompare
 ```
 
