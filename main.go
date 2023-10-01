@@ -80,9 +80,17 @@ func main() {
 	if strings.Contains(args[0], "/") {
 		parts := strings.SplitN(args[0], "/", 2)
 		resourceType, resourceName = parts[0], parts[1]
+		if len(args) < 3 {
+			showUsage()
+			os.Exit(1)
+		}
 		previousRevisionArg, nextRevisionArg = args[1], args[2]
 	} else if len(args) >= 4 {
 		resourceType, resourceName = args[0], args[1]
+		if len(args) < 4 {
+			showUsage()
+			os.Exit(1)
+		}
 		previousRevisionArg, nextRevisionArg = args[2], args[3]
 	} else {
 		showUsage()
