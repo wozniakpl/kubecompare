@@ -45,64 +45,63 @@ func getDiff(file1, file2 string) (string, error) {
 	return out.String(), nil
 }
 
+func showUsage() {
+	fmt.Println("Usage: kubecompare [<resource-type> <resource-name> | <resource-type>/<resource-name>] <previous-revision> <next-revision>")
+}
+
+func handleError(err error) {
+	if err != nil {
+		fmt.Println("Error:", err)
+		showUsage()
+		os.Exit(1)
+	}
+}
+
 func main() {
 	args := os.Args[1:]
 
-	if len(args) < 4 {
-		fmt.Println("Usage: kubecompare <resource-type> <resource-name> or <resource-type>/<resource-name> <previous-revision> <next-revision>")
-		return
+	if len(args) < 3 {
+		showUsage()
+		os.Exit(1)
 	}
 
 	var resourceType, resourceName string
+	var previousRevisionArg, nextRevisionArg string
+
 	if strings.Contains(args[0], "/") {
 		parts := strings.SplitN(args[0], "/", 2)
 		resourceType, resourceName = parts[0], parts[1]
-	} else {
+		previousRevisionArg, nextRevisionArg = args[1], args[2]
+	} else if len(args) >= 4 {
 		resourceType, resourceName = args[0], args[1]
+		previousRevisionArg, nextRevisionArg = args[2], args[3]
+	} else {
+		showUsage()
+		os.Exit(1)
 	}
 
-	previousRevisionArg, err := strconv.Atoi(args[2])
-	if err != nil {
-		fmt.Println("Error: Invalid previous revision number")
-		return
-	}
+	previousRevision, err := strconv.Atoi(previousRevisionArg)
+	handleError(err)
 
-	nextRevisionArg, err := strconv.Atoi(args[3])
-	if err != nil {
-		fmt.Println("Error: Invalid next revision number")
-		return
-	}
+	nextRevision, err := strconv.Atoi(nextRevisionArg)
+	handleError(err)
 
-	previousData, err := getKubectlRolloutHistory(resourceType, resourceName, previousRevisionArg)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	previousData, err := getKubectlRolloutHistory(resourceType, resourceName, previousRevision)
+	handleError(err)
 
-	nextData, err := getKubectlRolloutHistory(resourceType, resourceName, nextRevisionArg)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	nextData, err := getKubectlRolloutHistory(resourceType, resourceName, nextRevision)
+	handleError(err)
 
 	previousFile, err := writeTempFile(previousData)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	handleError(err)
 	defer os.Remove(previousFile)
 
 	nextFile, err := writeTempFile(nextData)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	handleError(err)
 	defer os.Remove(nextFile)
 
 	diff, err := getDiff(previousFile, nextFile)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	handleError(err)
+	
 	fmt.Println(diff)
 }
