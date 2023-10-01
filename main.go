@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -60,13 +60,13 @@ func handleError(err error) {
 
 func main() {
 	helpFlag := flag.Bool("h", false, "Show usage information")
-    flag.Parse()
+	flag.Parse()
 
-    if *helpFlag {
-        showUsage()
-        os.Exit(0)
-    }
-	
+	if *helpFlag {
+		showUsage()
+		os.Exit(0)
+	}
+
 	args := os.Args[1:]
 
 	if len(args) < 3 {
@@ -111,6 +111,6 @@ func main() {
 
 	diff, err := getDiff(previousFile, nextFile)
 	handleError(err)
-	
+
 	fmt.Println(diff)
 }
