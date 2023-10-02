@@ -11,7 +11,24 @@ import (
 	"strings"
 )
 
-func getKubectlRolloutHistory(resourceType, resourceName string, revision int) (string, error) {
+type KubectlInterface interface {
+	getRolloutHistory(resourceType, resourceName string, revision int) (string, error)
+}
+
+type RealKubectl struct{}
+
+type OutputWriter interface {
+	Write(string) error
+}
+
+type StdoutWriter struct{}
+
+func (sw StdoutWriter) Write(output string) error {
+	fmt.Println(output)
+	return nil
+}
+
+func (r RealKubectl) getRolloutHistory(resourceType, resourceName string, revision int) (string, error) {
 	cmd := exec.Command("kubectl", "rollout", "history", fmt.Sprintf("%s/%s", resourceType, resourceName), fmt.Sprintf("--revision=%d", revision))
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -58,20 +75,10 @@ func handleError(err error) {
 	}
 }
 
-func main() {
-	helpFlag := flag.Bool("h", false, "Show usage information")
-	flag.Parse()
-
-	if *helpFlag {
-		showUsage()
-		os.Exit(0)
-	}
-
-	args := os.Args[1:]
-
-	if len(args) < 3 {
-		showUsage()
-		os.Exit(1)
+func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, error) {
+	if len(args) < 2 {
+		showUsage() // TODO: writer
+		return 0, nil
 	}
 
 	var resourceType, resourceName string
@@ -81,44 +88,84 @@ func main() {
 		parts := strings.SplitN(args[0], "/", 2)
 		resourceType, resourceName = parts[0], parts[1]
 		if len(args) < 3 {
-			showUsage()
-			os.Exit(1)
+			showUsage() // TODO: writer
+			return 1, fmt.Errorf("insufficient arguments")
 		}
 		previousRevisionArg, nextRevisionArg = args[1], args[2]
 	} else if len(args) >= 4 {
 		resourceType, resourceName = args[0], args[1]
 		if len(args) < 4 {
-			showUsage()
-			os.Exit(1)
+			showUsage() // TODO: writer
+			return 1, fmt.Errorf("insufficient arguments")
 		}
 		previousRevisionArg, nextRevisionArg = args[2], args[3]
 	} else {
-		showUsage()
-		os.Exit(1)
+		showUsage() // TODO: writer
+		return 1, fmt.Errorf("insufficient arguments")
 	}
 
 	previousRevision, err := strconv.Atoi(previousRevisionArg)
-	handleError(err)
+	if err != nil {
+		return 1, err
+	}
 
 	nextRevision, err := strconv.Atoi(nextRevisionArg)
-	handleError(err)
+	if err != nil {
+		return 1, err
+	}
 
-	previousData, err := getKubectlRolloutHistory(resourceType, resourceName, previousRevision)
-	handleError(err)
+	previousData, err := k.getRolloutHistory(resourceType, resourceName, previousRevision)
+	if err != nil {
+		return 1, err
+	}
 
-	nextData, err := getKubectlRolloutHistory(resourceType, resourceName, nextRevision)
-	handleError(err)
+	nextData, err := k.getRolloutHistory(resourceType, resourceName, nextRevision)
+	if err != nil {
+		return 1, err
+	}
 
 	previousFile, err := writeTempFile(previousData)
-	handleError(err)
+	if err != nil {
+		return 1, err
+	}
 	defer os.Remove(previousFile)
 
 	nextFile, err := writeTempFile(nextData)
-	handleError(err)
+	if err != nil {
+		return 1, err
+	}
 	defer os.Remove(nextFile)
 
 	diff, err := getDiff(previousFile, nextFile)
-	handleError(err)
+	if err != nil {
+		return 1, err
+	}
 
-	fmt.Println(diff)
+	writer.Write(diff)
+
+	return 0, nil
+}
+
+func parseFlags() (bool, []string) {
+	helpFlag := flag.Bool("h", false, "Show usage information")
+	flag.Parse()
+	return *helpFlag, flag.Args()
+}
+
+func main() {
+	helpFlag, args := parseFlags()
+	if helpFlag {
+		showUsage()
+		os.Exit(0)
+	}
+
+	kubectl := RealKubectl{}
+	writer := StdoutWriter{}
+	status, err := mainLogic(kubectl, writer, args)
+
+	if err != nil {
+		fmt.Println("Error:", err)
+		showUsage()
+	}
+	os.Exit(status)
 }
