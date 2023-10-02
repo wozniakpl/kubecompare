@@ -79,3 +79,14 @@ func TestShowingTheErrorWhenKubectlFails(t *testing.T) {
 		t.Errorf("Expected error")
 	}
 }
+
+func TestFailingWhenResourceNameIsNotSpecified(t *testing.T) {
+	mockKubectl := new(MockKubectl)
+	mockWriter := new(MockWriter)
+
+	_, err := mainLogic(mockKubectl, mockWriter, []string{"deployment"})
+
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+}

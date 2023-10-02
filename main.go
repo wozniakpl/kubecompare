@@ -86,6 +86,9 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 		resourceType, resourceName = parts[0], parts[1]
 		args = args[1:]
 	} else {
+		if len(args) < 2 {
+			return 1, fmt.Errorf("invalid number of arguments")
+		}
 		resourceType, resourceName = args[0], args[1]
 		args = args[2:]
 	}
