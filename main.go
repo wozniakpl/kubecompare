@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -39,10 +40,20 @@ func (r RealKubectl) runKubectlCommand(args ...string) (string, error) {
 	cmd := exec.Command("kubectl", args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return "", err
+		return "", errors.New("")
 	}
+	return out.String(), nil
+}
+
+func getDiff(file1, file2 string) (string, error) {
+	cmd := exec.Command("diff", "-u", file1, file2)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
+	_ = cmd.Run()
 	return out.String(), nil
 }
 
@@ -56,17 +67,6 @@ func writeTempFile(data string) (string, error) {
 		return "", err
 	}
 	return tempFile.Name(), nil
-}
-
-func getDiff(file1, file2 string) (string, error) {
-	cmd := exec.Command("diff", "-u", file1, file2)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil && err.Error() != "exit status 1" {
-		return "", err
-	}
-	return out.String(), nil
 }
 
 func usage() string {
@@ -97,21 +97,9 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 		}
 		writer.Write(history)
 		return 0, nil
-	} else if len(args) != 2 {
-		return 1, fmt.Errorf("wrong invocation")
-	}
-
-	if len(args) == 0 {
-		history, err := k.getRolloutHistory(resourceType, resourceName)
-		if err != nil {
-			return 1, err
-		}
-		writer.Write(history)
-		return 0, nil
 	} else if len(args) == 2 {
 		previousRevisionArg, nextRevisionArg = args[0], args[1]
 	} else {
-		writer.Write(usage())
 		return 1, fmt.Errorf("invalid number of arguments")
 	}
 
@@ -175,8 +163,10 @@ func main() {
 	status, err := mainLogic(kubectl, writer, args)
 
 	if err != nil {
-		fmt.Println("Error:", err)
-		fmt.Println(usage())
+		if err.Error() != "" {
+			fmt.Println("Error:", err)
+			fmt.Println(usage())
+		}
 	}
 	os.Exit(status)
 }

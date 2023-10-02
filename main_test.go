@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -63,5 +64,18 @@ func TestShowingRollbackHistoryWhenNoRevisionsSpecified(t *testing.T) {
 	output := mockWriter.GetOutput()
 	if !strings.Contains(output, "history") {
 		t.Errorf("Expected output to contain history")
+	}
+}
+
+func TestShowingTheErrorWhenKubectlFails(t *testing.T) {
+	mockKubectl := new(MockKubectl)
+	mockKubectl.On("getRolloutHistory", "deployment", "nginx-that-does-not-exist").Return("", errors.New("error"))
+
+	mockWriter := new(MockWriter)
+
+	_, err := mainLogic(mockKubectl, mockWriter, []string{"deployment/nginx-that-does-not-exist"})
+
+	if err == nil {
+		t.Errorf("Expected error")
 	}
 }
