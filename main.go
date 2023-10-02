@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -41,10 +40,7 @@ func (r RealKubectl) runKubectlCommand(args ...string) (string, error) {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return "", errors.New("")
-	}
+	_ = cmd.Run()
 	return out.String(), nil
 }
 
@@ -166,10 +162,8 @@ func main() {
 	status, err := mainLogic(kubectl, writer, args)
 
 	if err != nil {
-		if err.Error() != "" {
-			fmt.Println("Error:", err)
-			fmt.Println(usage())
-		}
+		fmt.Println("Error:", err)
+		fmt.Println(usage())
 	}
 	os.Exit(status)
 }
