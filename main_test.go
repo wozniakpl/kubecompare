@@ -10,6 +10,7 @@ import (
 func TestMainLogicNoArgs(t *testing.T) {
 	mockKubectl := new(MockKubectl)
 	mockWriter := new(MockWriter)
+	mockWriter.On("Write", mock.Anything).Return(nil)
 	_, err := mainLogic(mockKubectl, mockWriter, []string{})
 
 	if err != nil {

@@ -63,21 +63,13 @@ func getDiff(file1, file2 string) (string, error) {
 	return out.String(), nil
 }
 
-func showUsage() {
-	fmt.Println("Usage: kubecompare [<resource-type> <resource-name> | <resource-type>/<resource-name>] <previous-revision> <next-revision>")
-}
-
-func handleError(err error) {
-	if err != nil {
-		fmt.Println("Error:", err)
-		showUsage()
-		os.Exit(1)
-	}
+func usage() string {
+	return "Usage: kubecompare [<resource-type> <resource-name> | <resource-type>/<resource-name>] <previous-revision> <next-revision>"
 }
 
 func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, error) {
 	if len(args) < 2 {
-		showUsage() // TODO: writer
+		writer.Write(usage())
 		return 0, nil
 	}
 
@@ -88,19 +80,19 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 		parts := strings.SplitN(args[0], "/", 2)
 		resourceType, resourceName = parts[0], parts[1]
 		if len(args) < 3 {
-			showUsage() // TODO: writer
+			writer.Write(usage())
 			return 1, fmt.Errorf("insufficient arguments")
 		}
 		previousRevisionArg, nextRevisionArg = args[1], args[2]
 	} else if len(args) >= 4 {
 		resourceType, resourceName = args[0], args[1]
 		if len(args) < 4 {
-			showUsage() // TODO: writer
+			writer.Write(usage())
 			return 1, fmt.Errorf("insufficient arguments")
 		}
 		previousRevisionArg, nextRevisionArg = args[2], args[3]
 	} else {
-		showUsage() // TODO: writer
+		writer.Write(usage())
 		return 1, fmt.Errorf("insufficient arguments")
 	}
 
@@ -155,7 +147,7 @@ func parseFlags() (bool, []string) {
 func main() {
 	helpFlag, args := parseFlags()
 	if helpFlag {
-		showUsage()
+		fmt.Println(usage())
 		os.Exit(0)
 	}
 
@@ -165,7 +157,7 @@ func main() {
 
 	if err != nil {
 		fmt.Println("Error:", err)
-		showUsage()
+		fmt.Println(usage())
 	}
 	os.Exit(status)
 }
