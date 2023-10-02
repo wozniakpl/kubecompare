@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -19,14 +18,13 @@ type KubectlInterface interface {
 type RealKubectl struct{}
 
 type OutputWriter interface {
-	Write(string) error
+	Write(string)
 }
 
 type StdoutWriter struct{}
 
-func (sw StdoutWriter) Write(output string) error {
+func (sw StdoutWriter) Write(output string) {
 	fmt.Println(output)
-	return nil
 }
 
 func (r RealKubectl) getRolloutHistory(resourceType, resourceName string) (string, error) {
@@ -49,11 +47,11 @@ func (r RealKubectl) runKubectlCommand(args ...string) (string, error) {
 }
 
 func writeTempFile(data string) (string, error) {
-	tempFile, err := ioutil.TempFile("", "revision")
+	tempFile, err := os.CreateTemp("", "revision")
 	if err != nil {
 		return "", err
 	}
-	err = ioutil.WriteFile(tempFile.Name(), []byte(data), 0644)
+	err = os.WriteFile(tempFile.Name(), []byte(data), 0644)
 	if err != nil {
 		return "", err
 	}
@@ -102,8 +100,6 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 	} else if len(args) != 2 {
 		return 1, fmt.Errorf("wrong invocation")
 	}
-
-	previousRevisionArg, nextRevisionArg = args[0], args[1]
 
 	if len(args) == 0 {
 		history, err := k.getRolloutHistory(resourceType, resourceName)

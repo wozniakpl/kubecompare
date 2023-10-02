@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/stretchr/testify/mock"
 	"strings"
 	"testing"
 )
@@ -9,7 +8,6 @@ import (
 func TestMainLogicNoArgs(t *testing.T) {
 	mockKubectl := new(MockKubectl)
 	mockWriter := new(MockWriter)
-	mockWriter.On("Write", mock.Anything).Return(nil)
 	_, err := mainLogic(mockKubectl, mockWriter, []string{})
 
 	if err != nil {
@@ -40,7 +38,6 @@ func TestShowingDiffBetweenTwoRevisions(t *testing.T) {
 	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 2).Return("some output 2", nil)
 
 	mockWriter := new(MockWriter)
-	mockWriter.On("Write", mock.Anything).Return(nil)
 
 	_, err := mainLogic(mockKubectl, mockWriter, []string{"deployment", "nginx", "1", "2"})
 
@@ -56,7 +53,6 @@ func TestShowingRollbackHistoryWhenNoRevisionsSpecified(t *testing.T) {
 	mockKubectl.On("getRolloutHistory", "deployment", "nginx").Return("history", nil)
 
 	mockWriter := new(MockWriter)
-	mockWriter.On("Write", mock.Anything).Return(nil)
 
 	_, err := mainLogic(mockKubectl, mockWriter, []string{"deployment/nginx"})
 

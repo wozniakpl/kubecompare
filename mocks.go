@@ -23,10 +23,8 @@ type MockWriter struct {
 	output string
 }
 
-func (mw *MockWriter) Write(output string) error {
-	args := mw.Called(output)
+func (mw *MockWriter) Write(output string) {
 	mw.output = output
-	return args.Error(0)
 }
 
 func (mw *MockWriter) GetOutput() string {

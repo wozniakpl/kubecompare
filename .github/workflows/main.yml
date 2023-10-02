@@ -30,3 +30,8 @@ jobs:
 
     - name: Run tests
       run: go test -v
+
+    - name: Install golangci-lint
+      run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    - name: Run golangci-lint
+      run: golangci-lint run
