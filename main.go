@@ -12,7 +12,8 @@ import (
 )
 
 type KubectlInterface interface {
-	getRolloutHistory(resourceType, resourceName string, revision int) (string, error)
+	getRolloutHistory(resourceType, resourceName string) (string, error)
+	getRolloutHistoryWithRevision(resourceType, resourceName string, revision int) (string, error)
 }
 
 type RealKubectl struct{}
@@ -28,15 +29,22 @@ func (sw StdoutWriter) Write(output string) error {
 	return nil
 }
 
-func (r RealKubectl) getRolloutHistory(resourceType, resourceName string, revision int) (string, error) {
-	cmd := exec.Command("kubectl", "rollout", "history", fmt.Sprintf("%s/%s", resourceType, resourceName), fmt.Sprintf("--revision=%d", revision))
+func (r RealKubectl) getRolloutHistory(resourceType, resourceName string) (string, error) {
+	return r.runKubectlCommand("rollout", "history", fmt.Sprintf("%s/%s", resourceType, resourceName))
+}
+
+func (r RealKubectl) getRolloutHistoryWithRevision(resourceType, resourceName string, revision int) (string, error) {
+	return r.runKubectlCommand("rollout", "history", fmt.Sprintf("%s/%s", resourceType, resourceName), fmt.Sprintf("--revision=%d", revision))
+}
+
+func (r RealKubectl) runKubectlCommand(args ...string) (string, error) {
+	cmd := exec.Command("kubectl", args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
 		return "", err
 	}
-
 	return out.String(), nil
 }
 
@@ -64,36 +72,51 @@ func getDiff(file1, file2 string) (string, error) {
 }
 
 func usage() string {
-	return "Usage: kubecompare [<resource-type> <resource-name> | <resource-type>/<resource-name>] <previous-revision> <next-revision>"
+	return "Usage: kubecompare [ <resource-type> <resource-name> | <resource-type>/<resource-name> ] [ <previous-revision> <next-revision> ]"
 }
 
 func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, error) {
-	if len(args) < 2 {
+	if len(args) == 0 {
 		writer.Write(usage())
 		return 0, nil
 	}
 
-	var resourceType, resourceName string
-	var previousRevisionArg, nextRevisionArg string
+	var resourceType, resourceName, previousRevisionArg, nextRevisionArg string
 
 	if strings.Contains(args[0], "/") {
 		parts := strings.SplitN(args[0], "/", 2)
 		resourceType, resourceName = parts[0], parts[1]
-		if len(args) < 3 {
-			writer.Write(usage())
-			return 1, fmt.Errorf("insufficient arguments")
-		}
-		previousRevisionArg, nextRevisionArg = args[1], args[2]
-	} else if len(args) >= 4 {
+		args = args[1:]
+	} else {
 		resourceType, resourceName = args[0], args[1]
-		if len(args) < 4 {
-			writer.Write(usage())
-			return 1, fmt.Errorf("insufficient arguments")
+		args = args[2:]
+	}
+
+	if len(args) == 0 {
+		history, err := k.getRolloutHistory(resourceType, resourceName)
+		if err != nil {
+			return 1, err
 		}
-		previousRevisionArg, nextRevisionArg = args[2], args[3]
+		writer.Write(history)
+		return 0, nil
+	} else if len(args) != 2 {
+		return 1, fmt.Errorf("wrong invocation")
+	}
+
+	previousRevisionArg, nextRevisionArg = args[0], args[1]
+
+	if len(args) == 0 {
+		history, err := k.getRolloutHistory(resourceType, resourceName)
+		if err != nil {
+			return 1, err
+		}
+		writer.Write(history)
+		return 0, nil
+	} else if len(args) == 2 {
+		previousRevisionArg, nextRevisionArg = args[0], args[1]
 	} else {
 		writer.Write(usage())
-		return 1, fmt.Errorf("insufficient arguments")
+		return 1, fmt.Errorf("invalid number of arguments")
 	}
 
 	previousRevision, err := strconv.Atoi(previousRevisionArg)
@@ -106,12 +129,12 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 		return 1, err
 	}
 
-	previousData, err := k.getRolloutHistory(resourceType, resourceName, previousRevision)
+	previousData, err := k.getRolloutHistoryWithRevision(resourceType, resourceName, previousRevision)
 	if err != nil {
 		return 1, err
 	}
 
-	nextData, err := k.getRolloutHistory(resourceType, resourceName, nextRevision)
+	nextData, err := k.getRolloutHistoryWithRevision(resourceType, resourceName, nextRevision)
 	if err != nil {
 		return 1, err
 	}

@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-
 func TestMainLogicNoArgs(t *testing.T) {
 	mockKubectl := new(MockKubectl)
 	mockWriter := new(MockWriter)
@@ -37,8 +36,8 @@ func assertThereIsSomeDiff(t *testing.T, writer *MockWriter) {
 
 func TestShowingDiffBetweenTwoRevisions(t *testing.T) {
 	mockKubectl := new(MockKubectl)
-	mockKubectl.On("getRolloutHistory", "deployment", "nginx", 1).Return("some output 1", nil)
-	mockKubectl.On("getRolloutHistory", "deployment", "nginx", 2).Return("some output 2", nil)
+	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 1).Return("some output 1", nil)
+	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 2).Return("some output 2", nil)
 
 	mockWriter := new(MockWriter)
 	mockWriter.On("Write", mock.Anything).Return(nil)
@@ -50,4 +49,23 @@ func TestShowingDiffBetweenTwoRevisions(t *testing.T) {
 	}
 
 	assertThereIsSomeDiff(t, mockWriter)
+}
+
+func TestShowingRollbackHistoryWhenNoRevisionsSpecified(t *testing.T) {
+	mockKubectl := new(MockKubectl)
+	mockKubectl.On("getRolloutHistory", "deployment", "nginx").Return("history", nil)
+
+	mockWriter := new(MockWriter)
+	mockWriter.On("Write", mock.Anything).Return(nil)
+
+	_, err := mainLogic(mockKubectl, mockWriter, []string{"deployment/nginx"})
+
+	if err != nil {
+		t.Errorf("Expected no error")
+	}
+
+	output := mockWriter.GetOutput()
+	if !strings.Contains(output, "history") {
+		t.Errorf("Expected output to contain history")
+	}
 }

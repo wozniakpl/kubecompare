@@ -30,7 +30,7 @@ brew install kubecompare
 ## Usage
 
 ```
-kubecompare [<resource-type> <resource-name> | <resource-type>/<resource-name>] <previous-revision> <next-revision>
+kubecompare [ <resource-type> <resource-name> | <resource-type>/<resource-name> ] [ <previous-revision> <next-revision> ]
 ```
 
 -h : Show usage information.
