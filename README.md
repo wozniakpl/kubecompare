@@ -44,7 +44,7 @@ $ kubectl create deployment nginx --image=nginx
 Now, let's change the image in the deployment:
 
 ```bash
-$ kubectl edit deployment nginx
+$ kubectl patch deployment nginx -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx","image":"busybox"}]}}}}'
 ```
 
 Once it's done, we can see that we have two revisions available:
