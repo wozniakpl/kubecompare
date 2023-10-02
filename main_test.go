@@ -90,3 +90,16 @@ func TestFailingWhenResourceNameIsNotSpecified(t *testing.T) {
 		t.Errorf("Expected error")
 	}
 }
+
+func TestFailingIfRevisionDoesNotExist(t *testing.T) {
+	mockKubectl := new(MockKubectl)
+	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 1).Return("", errors.New("error"))
+
+	mockWriter := new(MockWriter)
+
+	_, err := mainLogic(mockKubectl, mockWriter, []string{"deployment", "nginx", "1", "2"})
+
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+}

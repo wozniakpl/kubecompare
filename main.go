@@ -40,7 +40,10 @@ func (r RealKubectl) runKubectlCommand(args ...string) (string, error) {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
-	_ = cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
 	return out.String(), nil
 }
 
@@ -83,7 +86,7 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 		args = args[1:]
 	} else {
 		if len(args) < 2 {
-			return 1, fmt.Errorf("invalid number of arguments")
+			return 2, fmt.Errorf("invalid number of arguments")
 		}
 		resourceType, resourceName = args[0], args[1]
 		args = args[2:]
@@ -99,17 +102,17 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 	} else if len(args) == 2 {
 		previousRevisionArg, nextRevisionArg = args[0], args[1]
 	} else {
-		return 1, fmt.Errorf("invalid number of arguments")
+		return 2, fmt.Errorf("invalid number of arguments")
 	}
 
 	previousRevision, err := strconv.Atoi(previousRevisionArg)
 	if err != nil {
-		return 1, err
+		return 2, err
 	}
 
 	nextRevision, err := strconv.Atoi(nextRevisionArg)
 	if err != nil {
-		return 1, err
+		return 2, err
 	}
 
 	previousData, err := k.getRolloutHistoryWithRevision(resourceType, resourceName, previousRevision)
@@ -163,7 +166,9 @@ func main() {
 
 	if err != nil {
 		fmt.Println("Error:", err)
-		fmt.Println(usage())
+		if status == 2 {
+			fmt.Println(usage())
+		}
 	}
 	os.Exit(status)
 }
