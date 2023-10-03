@@ -10,7 +10,7 @@ Have you ever updated a Kubernetes deployment and wondered what changed between 
 
 ### Homebrew
 
-If you have Homebrew installed, you can install kubecompare from our custom tap:
+If you have Homebrew installed, you can install `kubecompare` from our custom tap:
 
 ```
 brew tap wozniakpl/kubecompare
