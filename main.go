@@ -154,7 +154,18 @@ func parseFlags() (bool, string, []string) {
 
 	flag.Parse()
 
-	return *helpFlag, namespace, flag.Args()
+	args := flag.Args()
+
+	for _, arg := range []string{"-n", "--namespace"} {
+		for i, a := range args {
+			if a == arg {
+				args = append(args[:i], args[i+2:]...)
+				break
+			}
+		}
+	}
+
+	return *helpFlag, namespace, args
 }
 
 func main() {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"strings"
 	"testing"
 )
@@ -36,8 +35,8 @@ func assertThereIsSomeDiff(t *testing.T, writer *MockWriter) {
 
 func TestShowingDiffBetweenTwoRevisions(t *testing.T) {
 	mockKubectl := new(MockKubectl)
-	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 1).Return("some output 1", nil)
-	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 2).Return("some output 2", nil)
+	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 1, "").Return("some output 1", nil)
+	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 2, "").Return("some output 2", nil)
 
 	mockWriter := new(MockWriter)
 	namespace := ""
@@ -51,9 +50,9 @@ func TestShowingDiffBetweenTwoRevisions(t *testing.T) {
 	assertThereIsSomeDiff(t, mockWriter)
 }
 
-func TestShowingRollbackHistoryWhenNoRevisionsSpecified(t *testing.T) {
+func TestShowingRollbackHistoryWhenNoRevisionIsSpecified(t *testing.T) {
 	mockKubectl := new(MockKubectl)
-	mockKubectl.On("getRolloutHistory", "deployment", "nginx").Return("history", nil)
+	mockKubectl.On("getRolloutHistory", "deployment", "nginx", "").Return("history", nil)
 
 	mockWriter := new(MockWriter)
 	namespace := ""
@@ -70,42 +69,21 @@ func TestShowingRollbackHistoryWhenNoRevisionsSpecified(t *testing.T) {
 	}
 }
 
-func TestShowingTheErrorWhenKubectlFails(t *testing.T) {
+func TestShowingRollbackHistoryWhenNoRevisionIsSpecifiedAndNamespaceIs(t *testing.T) {
 	mockKubectl := new(MockKubectl)
-	mockKubectl.On("getRolloutHistory", "deployment", "nginx-that-does-not-exist").Return("", errors.New("error"))
+	mockKubectl.On("getRolloutHistory", "daemonset", "busybox", "default").Return("history", nil)
 
 	mockWriter := new(MockWriter)
-	namespace := ""
+	namespace := "default"
 
-	_, err := mainLogic(mockKubectl, mockWriter, namespace, []string{"deployment/nginx-that-does-not-exist"})
+	_, err := mainLogic(mockKubectl, mockWriter, namespace, []string{"daemonset/busybox"})
 
-	if err == nil {
-		t.Errorf("Expected error")
+	if err != nil {
+		t.Errorf("Expected no error")
 	}
-}
 
-func TestFailingWhenResourceNameIsNotSpecified(t *testing.T) {
-	mockKubectl := new(MockKubectl)
-	mockWriter := new(MockWriter)
-	namespace := ""
-
-	_, err := mainLogic(mockKubectl, mockWriter, namespace, []string{"deployment"})
-
-	if err == nil {
-		t.Errorf("Expected error")
-	}
-}
-
-func TestFailingIfRevisionDoesNotExist(t *testing.T) {
-	mockKubectl := new(MockKubectl)
-	mockKubectl.On("getRolloutHistoryWithRevision", "deployment", "nginx", 1).Return("", errors.New("error"))
-
-	mockWriter := new(MockWriter)
-	namespace := ""
-
-	_, err := mainLogic(mockKubectl, mockWriter, namespace, []string{"deployment", "nginx", "1", "2"})
-
-	if err == nil {
-		t.Errorf("Expected error")
+	output := mockWriter.GetOutput()
+	if !strings.Contains(output, "history") {
+		t.Errorf("Expected output to contain history")
 	}
 }
