@@ -1,0 +1,19 @@
+#compdef kubecompare
+
+_kubecompare() {
+    local -a commands
+    commands=( $(kubectl get deployment,statefulset,daemonset -o custom-columns=NAME:.metadata.name --no-headers 2>/dev/null) )
+
+    _arguments \
+        '-n[Specify namespace]:namespace:' \
+        '--namespace[Specify namespace]:namespace:' \
+        '*: :->cmds' 
+
+    case $state in
+        cmds)
+            _describe 'command' commands
+            ;;
+    esac
+}
+
+_kubecompare "$@"
