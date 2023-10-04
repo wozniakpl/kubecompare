@@ -17,12 +17,20 @@ func (sw StdoutWriter) Write(output string) {
 	fmt.Println(output)
 }
 
-func (r RealKubectl) getRolloutHistory(resourceType, resourceName string) (string, error) {
-	return r.runKubectlCommand("rollout", "history", fmt.Sprintf("%s/%s", resourceType, resourceName))
+func (r RealKubectl) getRolloutHistory(resourceType, resourceName, namespace string) (string, error) {
+	args := []string{"rollout", "history", fmt.Sprintf("%s/%s", resourceType, resourceName)}
+	if namespace != "" {
+		args = append(args, "-n", namespace)
+	}
+	return r.runKubectlCommand(args...)
 }
 
-func (r RealKubectl) getRolloutHistoryWithRevision(resourceType, resourceName string, revision int) (string, error) {
-	return r.runKubectlCommand("rollout", "history", fmt.Sprintf("%s/%s", resourceType, resourceName), fmt.Sprintf("--revision=%d", revision))
+func (r RealKubectl) getRolloutHistoryWithRevision(resourceType, resourceName string, revision int, namespace string) (string, error) {
+	args := []string{"rollout", "history", fmt.Sprintf("%s/%s", resourceType, resourceName), fmt.Sprintf("--revision=%d", revision)}
+	if namespace != "" {
+		args = append(args, "-n", namespace)
+	}
+	return r.runKubectlCommand(args...)
 }
 
 func (r RealKubectl) runKubectlCommand(args ...string) (string, error) {
@@ -62,7 +70,7 @@ func usage() string {
 	return "Usage: kubecompare [ <resource-type> <resource-name> | <resource-type>/<resource-name> ] [ <previous-revision> <next-revision> ]"
 }
 
-func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, error) {
+func mainLogic(k KubectlInterface, writer OutputWriter, namespace string, args []string) (int, error) {
 	if len(args) == 0 {
 		writer.Write(usage())
 		return 0, nil
@@ -83,7 +91,7 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 	}
 
 	if len(args) == 0 {
-		history, err := k.getRolloutHistory(resourceType, resourceName)
+		history, err := k.getRolloutHistory(resourceType, resourceName, namespace)
 		if err != nil {
 			return 1, err
 		}
@@ -105,12 +113,12 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 		return 2, err
 	}
 
-	previousData, err := k.getRolloutHistoryWithRevision(resourceType, resourceName, previousRevision)
+	previousData, err := k.getRolloutHistoryWithRevision(resourceType, resourceName, previousRevision, namespace)
 	if err != nil {
 		return 1, err
 	}
 
-	nextData, err := k.getRolloutHistoryWithRevision(resourceType, resourceName, nextRevision)
+	nextData, err := k.getRolloutHistoryWithRevision(resourceType, resourceName, nextRevision, namespace)
 	if err != nil {
 		return 1, err
 	}
@@ -137,14 +145,20 @@ func mainLogic(k KubectlInterface, writer OutputWriter, args []string) (int, err
 	return 0, nil
 }
 
-func parseFlags() (bool, []string) {
+func parseFlags() (bool, string, []string) {
 	helpFlag := flag.Bool("h", false, "Show usage information")
+
+	var namespace string
+	flag.StringVar(&namespace, "n", "", "Specify namespace")
+	flag.StringVar(&namespace, "namespace", "", "Specify namespace")
+
 	flag.Parse()
-	return *helpFlag, flag.Args()
+
+	return *helpFlag, namespace, flag.Args()
 }
 
 func main() {
-	helpFlag, args := parseFlags()
+	helpFlag, namespace, args := parseFlags()
 	if helpFlag {
 		fmt.Println(usage())
 		os.Exit(0)
@@ -152,7 +166,7 @@ func main() {
 
 	kubectl := RealKubectl{}
 	writer := StdoutWriter{}
-	status, err := mainLogic(kubectl, writer, args)
+	status, err := mainLogic(kubectl, writer, namespace, args)
 
 	if err != nil {
 		fmt.Println("Error:", err)

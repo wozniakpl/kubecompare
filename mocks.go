@@ -8,12 +8,12 @@ type MockKubectl struct {
 	mock.Mock
 }
 
-func (m *MockKubectl) getRolloutHistory(resourceType, resourceName string) (string, error) {
+func (m *MockKubectl) getRolloutHistory(resourceType, resourceName string, namespace string) (string, error) {
 	args := m.Called(resourceType, resourceName)
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockKubectl) getRolloutHistoryWithRevision(resourceType, resourceName string, revision int) (string, error) {
+func (m *MockKubectl) getRolloutHistoryWithRevision(resourceType, resourceName string, revision int, namespace string) (string, error) {
 	args := m.Called(resourceType, resourceName, revision)
 	return args.String(0), args.Error(1)
 }
